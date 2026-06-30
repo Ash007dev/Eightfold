@@ -14,6 +14,7 @@ import requests
 from transformer.config import AppConfig
 from transformer.cache import SQLiteCache, stable_hash
 from transformer.evidence.file_signals import FILE_SIGNALS, OWNERSHIP_FILES
+from transformer.llm import LLMClient
 from transformer.models import Observation
 from transformer.normalize import clean_text, normalize_link, normalize_skill
 
@@ -164,6 +165,43 @@ def _classify_link(url: str, portfolio_seen: bool) -> tuple[str, str | None, boo
     return "links.other", None, portfolio_seen
 
 
+def _repo_triage_prompt(repos: list[tuple[dict[str, Any], str, str]], max_count: int) -> str:
+    rows = []
+    for repo, _, _ in repos:
+        rows.append(
+            {
+                "full_name": repo.get("full_name"),
+                "description": repo.get("description") or "",
+                "topics": repo.get("topics") or [],
+                "language": repo.get("language") or "",
+            }
+        )
+    return (
+        "Given these authored GitHub repositories, return a JSON array of up to "
+        f"{max_count} repo full_name strings that are most skill-relevant for candidate evidence. "
+        "Return only repo full_name values that appear in the input.\n\n"
+        + json.dumps(rows, sort_keys=True)
+    )
+
+
+def _triage_authored_repos(repos: list[tuple[dict[str, Any], str, str]], config: AppConfig) -> list[tuple[dict[str, Any], str, str]]:
+    limit = max(1, config.max_files_to_read)
+    if len(repos) <= limit:
+        return repos
+    try:
+        requested = json.loads(LLMClient(config).complete(_repo_triage_prompt(repos, limit), tier="cheap"))
+    except Exception:
+        requested = []
+    if not isinstance(requested, list):
+        return repos[:limit]
+    requested_names = [str(item) for item in requested]
+    by_name = {str(repo.get("full_name")): (repo, owner, name) for repo, owner, name in repos}
+    selected = [by_name[name] for name in requested_names if name in by_name]
+    if not selected:
+        return repos[:limit]
+    return selected[:limit]
+
+
 def extract(path: Path, config: AppConfig) -> list[Observation]:
     try:
         text = path.read_text(encoding="utf-8", errors="ignore")
@@ -212,7 +250,7 @@ def extract(path: Path, config: AppConfig) -> list[Observation]:
             authored_repos.append((repo, owner, repo_name))
         as_of = _recency_as_of([repo for repo, _, _ in authored_repos], config)
         total_stars = sum(int(repo.get("stargazers_count") or 0) for repo, _, _ in authored_repos)
-        for repo, owner, repo_name in authored_repos:
+        for repo, owner, repo_name in _triage_authored_repos(authored_repos, config):
             branch = repo.get("default_branch") or "main"
             paths = _tree_paths(owner, repo_name, branch, config, cache)
             identity_confirmed = _identity_confirmed(paths, owner, repo_name, login, config, cache)

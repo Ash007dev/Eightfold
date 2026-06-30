@@ -31,7 +31,7 @@ def extract(path: Path, config: AppConfig) -> list[Observation]:
         if not text.strip():
             return []
         text = text[: max(1, config.max_files_to_read) * 2000]
-        data = json.loads(LLMClient(config).complete(_prompt(text)))
+        data = json.loads(LLMClient(config).complete(_prompt(text), tier="strong"))
         hint = str(path)
         observations: list[Observation] = []
         for skill in _as_list(data.get("skills")):

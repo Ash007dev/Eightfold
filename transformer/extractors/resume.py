@@ -84,7 +84,7 @@ def extract(path: Path, config: AppConfig) -> list[Observation]:
         if not text.strip():
             return []
         text = text[: max(1, config.max_files_to_read) * 4000]
-        data = json.loads(LLMClient(config).complete(_prompt(text)))
+        data = json.loads(LLMClient(config).complete(_prompt(text), tier="strong"))
         hint = str(path)
         observations: list[Observation] = []
         name = clean_text(data.get("full_name"))

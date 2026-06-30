@@ -14,13 +14,14 @@ class LLMClient:
         self.config = config
         self.cache = SQLiteCache(config.cache_path)
 
-    def complete(self, prompt: str) -> str:
+    def complete(self, prompt: str, tier: str = "strong") -> str:
         temperature = 0.0
-        key = stable_hash(f"{self.config.llm_provider}|{self.config.llm_model}|{temperature}|{prompt}")
+        model = self.config.llm_model_cheap if tier == "cheap" and self.config.llm_model_cheap else self.config.llm_model
+        key = stable_hash(f"{self.config.llm_provider}|{model}|{temperature}|{tier}|{prompt}")
         cached = self.cache.get(key)
         if cached is not None:
             return cached
-        if not self.config.llm_model:
+        if not model:
             value = "{}"
             self.cache.set(key, value)
             return value
@@ -31,7 +32,7 @@ class LLMClient:
 
             client = OpenAI()
             response = client.chat.completions.create(
-                model=self.config.llm_model,
+                model=model,
                 temperature=temperature,
                 response_format={"type": "json_object"},
                 messages=[
