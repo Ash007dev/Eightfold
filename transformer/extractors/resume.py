@@ -20,14 +20,38 @@ from transformer.normalize import (
 logger = logging.getLogger(__name__)
 
 
+def _ocr_pdf_page(page: Any) -> str:
+    try:
+        import pytesseract
+
+        image = page.to_image(resolution=200).original
+        return pytesseract.image_to_string(image) or ""
+    except Exception as exc:
+        logger.warning("pdf OCR failed on page: %s", exc)
+        return ""
+
+
+def _read_pdf_text(path: Path) -> str:
+    import pdfplumber
+
+    chunks: list[str] = []
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            if text.strip():
+                chunks.append(text)
+                continue
+            ocr_text = _ocr_pdf_page(page)
+            if ocr_text.strip():
+                chunks.append(ocr_text)
+    return "\n".join(chunks)
+
+
 def _read_text(path: Path) -> str:
     if path.suffix.lower() == ".txt":
         return path.read_text(encoding="utf-8", errors="ignore")
     if path.suffix.lower() == ".pdf":
-        import pdfplumber
-
-        with pdfplumber.open(path) as pdf:
-            return "\n".join(page.extract_text() or "" for page in pdf.pages)
+        return _read_pdf_text(path)
     if path.suffix.lower() == ".docx":
         from docx import Document
 

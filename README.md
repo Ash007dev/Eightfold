@@ -33,7 +33,16 @@ Then run:
 python -m transformer --inputs my_candidate --config configs\default.json
 ```
 
-There is also a tiny PDF fixture at `samples\candidate_pdf\resume.pdf`, used by the tests to prove PDF text extraction works. Scanned image-only PDFs are not OCRed in this MVP; they will safely contribute no resume text instead of crashing the run.
+There are PDF fixtures under `samples\candidate_pdf\`: one text-based PDF and one scanned/image-only PDF. Text-based PDFs work with `pdfplumber`. Scanned PDFs use OCR through `pytesseract`, which also needs the Tesseract OCR program installed on your machine.
+
+On Windows, install Tesseract first, then install Python requirements:
+
+```powershell
+winget install UB-Mannheim.TesseractOCR
+python -m pip install -r requirements.txt
+```
+
+If Tesseract is missing, scanned pages safely contribute no resume text instead of crashing the run.
 
 ## Architecture
 
