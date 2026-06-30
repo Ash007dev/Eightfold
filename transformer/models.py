@@ -5,13 +5,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-SourceName = Literal["ats_json", "recruiter_csv", "resume", "notes", "github"]
+SourceName = Literal["ats_json", "recruiter_csv", "resume", "notes", "github", "leetcode"]
 MethodName = Literal[
     "exact",
     "regex",
     "llm_extraction",
     "github_authored",
     "github_filesignal",
+    "github_topic",
+    "leetcode_solved",
 ]
 
 
@@ -30,6 +32,7 @@ class ProvenanceEntry(BaseModel):
     method: str
     value: Any | None = None
     selected: bool = True
+    confidence_signals: dict[str, Any] = Field(default_factory=dict)
 
 
 class Location(BaseModel):
@@ -41,6 +44,8 @@ class Location(BaseModel):
 class Links(BaseModel):
     linkedin: str | None = None
     github: str | None = None
+    leetcode: str | None = None
+    orcid: str | None = None
     portfolio: str | None = None
     other: list[str] = Field(default_factory=list)
 

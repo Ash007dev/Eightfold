@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import base64
 from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,7 @@ import requests
 
 from transformer.config import AppConfig
 from transformer.cache import SQLiteCache, stable_hash
+from transformer.evidence.file_signals import FILE_SIGNALS, OWNERSHIP_FILES
 from transformer.models import Observation
 from transformer.normalize import clean_text, normalize_link, normalize_skill
 
@@ -18,36 +20,6 @@ logger = logging.getLogger(__name__)
 
 PROFILE_RE = re.compile(r"https?://(?:www\.)?github\.com/([A-Za-z0-9-]+)")
 URL_RE = re.compile(r"https?://[^\s)>\"]+")
-
-FILE_SIGNALS: list[tuple[str, str]] = [
-    (".github/workflows/*.yml", "GitHub Actions"),
-    (".github/workflows/*.yaml", "GitHub Actions"),
-    (".gitlab-ci.yml", "CI/CD"),
-    (".circleci/config.yml", "CI/CD"),
-    ("Jenkinsfile", "CI/CD"),
-    ("Dockerfile", "Docker"),
-    ("Dockerfile.*", "Docker"),
-    ("docker-compose.yml", "Docker Compose"),
-    ("docker-compose.yaml", "Docker Compose"),
-    ("compose.yml", "Docker Compose"),
-    ("compose.yaml", "Docker Compose"),
-    ("k8s/*.yaml", "Kubernetes"),
-    ("manifests/*.yaml", "Kubernetes"),
-    ("Chart.yaml", "Helm"),
-    ("*.tf", "Terraform"),
-    ("*.tfvars", "Terraform"),
-    ("prisma/schema.prisma", "Prisma"),
-    ("schema.graphql", "GraphQL"),
-    ("openapi.yaml", "OpenAPI"),
-    ("openapi.json", "OpenAPI"),
-    ("*.proto", "gRPC"),
-    ("next.config.js", "Next.js"),
-    ("next.config.mjs", "Next.js"),
-    ("next.config.ts", "Next.js"),
-    ("vite.config.ts", "Vite"),
-    ("vite.config.js", "Vite"),
-]
-
 
 def _login_from_text(text: str) -> str | None:
     match = PROFILE_RE.search(text)
@@ -96,16 +68,48 @@ def _tree_paths(owner: str, repo: str, branch: str, config: AppConfig, cache: SQ
     return sorted(item["path"] for item in data["tree"] if isinstance(item, dict) and isinstance(item.get("path"), str))
 
 
-def _file_signal_skills(paths: list[str]) -> list[str]:
-    skills: set[str] = set()
+def _pattern_matches(path: str, pattern: str) -> bool:
+    return fnmatch(path, pattern) or fnmatch(path.lower(), pattern.lower())
+
+
+def _file_signal_skills(paths: list[str]) -> list[tuple[str, str]]:
+    skills: dict[str, str] = {}
     for path in paths:
         normalized_path = path.replace("\\", "/")
-        for pattern, skill in FILE_SIGNALS:
-            if fnmatch(normalized_path, pattern):
+        for pattern, skill, tier in FILE_SIGNALS:
+            if _pattern_matches(normalized_path, pattern):
                 canonical = normalize_skill(skill)
                 if canonical:
-                    skills.add(canonical)
-    return sorted(skills)
+                    existing = skills.get(canonical)
+                    if existing is None or existing == "tooling":
+                        skills[canonical] = tier
+    return sorted(skills.items(), key=lambda item: (item[0].casefold(), item[1]))
+
+
+def _content_text(owner: str, repo: str, path: str, config: AppConfig, cache: SQLiteCache) -> str:
+    encoded_path = "/".join(part for part in path.split("/") if part)
+    data = _get_json(f"https://api.github.com/repos/{owner}/{repo}/contents/{encoded_path}", config, cache)
+    if not isinstance(data, dict):
+        return ""
+    content = data.get("content")
+    if not isinstance(content, str):
+        return ""
+    try:
+        return base64.b64decode(content).decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+
+def _identity_confirmed(paths: list[str], owner: str, repo: str, login: str, config: AppConfig, cache: SQLiteCache) -> bool:
+    needles = {login.casefold()}
+    for path in paths:
+        filename = path.rsplit("/", 1)[-1]
+        if filename not in OWNERSHIP_FILES:
+            continue
+        content = _content_text(owner, repo, path, config, cache).casefold()
+        if any(needle in content for needle in needles):
+            return True
+    return False
 
 
 def extract(path: Path, config: AppConfig) -> list[Observation]:
@@ -147,18 +151,34 @@ def extract(path: Path, config: AppConfig) -> list[Observation]:
                 continue
             if _authored_commit_count(owner, repo_name, login, config, cache) <= 0:
                 continue
+            branch = repo.get("default_branch") or "main"
+            paths = _tree_paths(owner, repo_name, branch, config, cache)
+            identity_confirmed = _identity_confirmed(paths, owner, repo_name, login, config, cache)
             languages = _get_json(f"https://api.github.com/repos/{owner}/{repo_name}/languages", config, cache)
             if isinstance(languages, dict):
                 for language in sorted(languages):
                     skill = normalize_skill(language)
                     if skill:
                         observations.append(
-                            Observation(field="skills", value=skill, source="github", method="github_authored", candidate_hint=hint)
+                            Observation(
+                                field="skills",
+                                value=skill,
+                                source="github",
+                                method="github_authored",
+                                candidate_hint=hint,
+                                confidence_signals={"identity_confirmed": identity_confirmed},
+                            )
                         )
-            branch = repo.get("default_branch") or "main"
-            for skill in _file_signal_skills(_tree_paths(owner, repo_name, branch, config, cache)):
+            for skill, tier in _file_signal_skills(paths):
                 observations.append(
-                    Observation(field="skills", value=skill, source="github", method="github_filesignal", candidate_hint=hint)
+                    Observation(
+                        field="skills",
+                        value=skill,
+                        source="github",
+                        method="github_filesignal",
+                        candidate_hint=hint,
+                        confidence_signals={"tier": tier, "identity_confirmed": identity_confirmed},
+                    )
                 )
         return observations
     except Exception as exc:

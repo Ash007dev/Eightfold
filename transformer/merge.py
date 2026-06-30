@@ -167,6 +167,7 @@ def _add_provenance(provenance: list[ProvenanceEntry], field_name: str, obs: Obs
             method=obs.method,
             value=value,
             selected=selected,
+            confidence_signals=obs.confidence_signals,
         )
     )
 
@@ -192,6 +193,7 @@ def _best_scalar(items: list[tuple[str, Any, Observation]], config: AppConfig) -
                 method=obs.method,
                 value=value,
                 selected=value == winner[1],
+                confidence_signals=obs.confidence_signals,
             )
         )
     return winner[1], rows
@@ -265,10 +267,12 @@ def merge_observations(observations: list[Observation], config: AppConfig) -> li
         links = Links(
             linkedin=_best_scalar(values.get("links.linkedin", []), config)[0],
             github=_best_scalar(values.get("links.github", []), config)[0],
+            leetcode=_best_scalar(values.get("links.leetcode", []), config)[0],
+            orcid=_best_scalar(values.get("links.orcid", []), config)[0],
             portfolio=_best_scalar(values.get("links.portfolio", []), config)[0],
             other=_rank_array("links", [(item[1], item[2]) for item in values.get("links.other", [])], config),
         )
-        for key in ("links.linkedin", "links.github", "links.portfolio", "links.other"):
+        for key in ("links.linkedin", "links.github", "links.leetcode", "links.orcid", "links.portfolio", "links.other"):
             provenance.extend(_best_scalar(values.get(key, []), config)[1])
         headline, headline_prov = _best_scalar(values.get("headline", []), config)
         years_experience, years_prov = _best_scalar(values.get("years_experience", []), config)
