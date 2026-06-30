@@ -310,7 +310,9 @@
       },
       {
         "confidence_signals": {
-          "identity_confirmed": false
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0
         },
         "field": "skills",
         "method": "github_authored",
@@ -320,7 +322,9 @@
       },
       {
         "confidence_signals": {
-          "identity_confirmed": false
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0
         },
         "field": "skills",
         "method": "github_authored",
@@ -331,6 +335,8 @@
       {
         "confidence_signals": {
           "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
           "tier": "infra"
         },
         "field": "skills",
@@ -342,6 +348,8 @@
       {
         "confidence_signals": {
           "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
           "tier": "cicd"
         },
         "field": "skills",
@@ -353,6 +361,8 @@
       {
         "confidence_signals": {
           "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
           "tier": "infra"
         },
         "field": "skills",
