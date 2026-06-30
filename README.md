@@ -14,6 +14,27 @@ python -m pytest -q
 
 The repository includes `.cache/responses.db`, pre-seeded with content-hash responses for the sample LLM and GitHub calls, so the demo and tests run offline and deterministically.
 
+## PDF Resumes
+
+PDF resumes are supported. Put a text-based PDF in any input folder and the detector treats it as a resume:
+
+```text
+my_candidate/
+  ats.json
+  recruiter.csv
+  resume.pdf
+  notes.txt
+  github.txt
+```
+
+Then run:
+
+```powershell
+python -m transformer --inputs my_candidate --config configs\default.json
+```
+
+There is also a tiny PDF fixture at `samples\candidate_pdf\resume.pdf`, used by the tests to prove PDF text extraction works. Scanned image-only PDFs are not OCRed in this MVP; they will safely contribute no resume text instead of crashing the run.
+
 ## Architecture
 
 ```text
