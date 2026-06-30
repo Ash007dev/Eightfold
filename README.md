@@ -14,6 +14,19 @@ python -m pytest -q
 
 The repository includes `.cache/responses.db`, pre-seeded with content-hash responses for the sample LLM and GitHub calls, so the demo and tests run offline and deterministically.
 
+## Sources
+
+| Source | Status | Notes |
+|---|---|---|
+| Recruiter CSV | Supported | Exact structured fields. |
+| ATS JSON | Supported | Explicit remap table for renamed fields. |
+| Resume TXT/PDF/DOCX | Supported | OpenAI proposes JSON; deterministic validators decide what enters the record. |
+| Scanned PDF resume | Supported | OCR fallback through `pytesseract` + local Tesseract. Missing OCR tooling degrades safely. |
+| Notes TXT | Supported | OpenAI proposes weak free-text signals only. |
+| GitHub | Supported | Authored commits gate strong repo evidence; file signals are weak "project uses X" signals. |
+| LeetCode | Best effort | Unofficial GraphQL endpoint; failures contribute zero evidence. |
+| ORCID | Stretch | Public API planned, off by default in this strong submission. |
+
 ## PDF Resumes
 
 PDF resumes are supported. Put a text-based PDF in any input folder and the detector treats it as a resume:
@@ -64,6 +77,34 @@ files / manifest
 ```
 
 `CanonicalRecord` remains internal. The projection engine is the only output producer, including for the default schema in `configs/default.json`.
+
+## Evidence Model
+
+Skill confidence is a deterministic score out of 10, emitted as `score / 10`:
+
+| Signal | Delta |
+|---|---:|
+| Present in one source | `+3` |
+| Present in two or more independent sources | `+2` |
+| GitHub authored language evidence | `+3` |
+| LeetCode solved-language evidence, when also claimed elsewhere | `+2` |
+| GitHub file signal in infra, CI/CD, DB/API, or framework tier | `+1` |
+| Ownership file confirms the login in `.mailmap`, `AUTHORS`, `CONTRIBUTORS`, `CODEOWNERS`, or `CITATION.cff` | `+1` |
+| Recent repo activity, relative to deterministic `RECENCY_AS_OF` | `+0.5` |
+| Stars present across authored repos | `+0.25` |
+| Only weak uncorroborated evidence such as notes, topics, or LeetCode-only | `-1` |
+| Tooling-only file signals such as `tsconfig.json` | `0 skill credit` |
+
+File-signal tiers are intentionally conservative. A Dockerfile proves "project uses Docker", not "expert in Docker". Topics, stars, and recency can corroborate or break ties, but they never create a top skill on their own.
+
+## OpenAI Routing
+
+The LLM wrapper supports two deterministic OpenAI tiers:
+
+- `LLM_MODEL` is the strong model for resume and notes extraction.
+- `LLM_MODEL_CHEAP` is the cheap model for low-stakes triage, such as choosing which authored GitHub repos to deep-scan when there are too many.
+
+Both tiers use temperature `0`, JSON-only prompts, and SQLite content-hash caching. Routing chooses only which model runs or which repos to inspect; deterministic validators, merge rules, and confidence scoring still decide what is accepted.
 
 ## Default Output
 
@@ -204,10 +245,10 @@ files / manifest
 
 ## Descoped
 
-LinkedIn ingestion, LeetCode, certificates, Neo4j, and model routing are intentionally descoped for the MVP. `LLM_MODEL_CHEAP` is left as a config hook only.
+LinkedIn ingestion, certificates, ORCID enrichment, and Neo4j export are intentionally descoped from the strong submission. Graph export would be optional and non-affecting: the canonical JSON output must stay identical whether graph export is off or on.
 
 ## Design Notes
 
-The design decision I am happiest with is the LLM-proposes/code-disposes boundary plus content-hash caching. Resume and notes extraction can use an LLM, but every proposed value is normalized or rejected before merge, and no LLM decides identity, winners, or scores.
+The design decision I am happiest with is the LLM-proposes/deterministic-validators-dispose boundary plus content-hash caching. Resume and notes extraction can use OpenAI models, but every proposed value is normalized or rejected before merge, and no LLM decides identity, winners, or scores. That makes the system useful with LLMs while staying deterministic and honest about missing data.
 
 One handled edge case: two people named Sam Patel in `samples/edge_homonym` stay as two profiles because name alone is never an identity key.
