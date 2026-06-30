@@ -24,11 +24,16 @@ def _load_dotenv(path: Path) -> None:
 class AppConfig:
     llm_provider: str = "OpenAI"
     llm_model: str = ""
+    llm_model_cheap: str = ""
     llm_temperature: float = 0.0
     default_region: str = "IN"
     max_repos: int = 30
     max_files_to_read: int = 10
+    recency_days: int = 365
+    recency_as_of: str = ""
     github_token: str = ""
+    leetcode_enabled: bool = True
+    orcid_enabled: bool = False
     cache_path: str = "./.cache/responses.db"
     source_trust: dict[str, dict[str, int]] | None = None
 
@@ -37,10 +42,10 @@ DEFAULT_SOURCE_TRUST: dict[str, dict[str, int]] = {
     "emails": {"recruiter_csv": 5, "ats_json": 5, "resume": 3, "notes": 1, "github": 1},
     "phones": {"recruiter_csv": 5, "ats_json": 5, "resume": 3, "notes": 1, "github": 0},
     "location": {"recruiter_csv": 5, "ats_json": 5, "resume": 3, "notes": 1, "github": 1},
-    "skills": {"github": 6, "resume": 5, "ats_json": 4, "notes": 2, "recruiter_csv": 1},
+    "skills": {"github": 6, "resume": 5, "ats_json": 4, "leetcode": 3, "notes": 2, "recruiter_csv": 1},
     "experience": {"resume": 5, "ats_json": 4, "notes": 2, "recruiter_csv": 3, "github": 1},
     "education": {"resume": 5, "ats_json": 3, "notes": 2, "recruiter_csv": 0, "github": 0},
-    "default": {"recruiter_csv": 5, "ats_json": 5, "resume": 3, "notes": 2, "github": 1},
+    "default": {"recruiter_csv": 5, "ats_json": 5, "resume": 3, "notes": 2, "github": 1, "leetcode": 0},
 }
 
 
@@ -56,11 +61,16 @@ def load_app_config(env_path: str | Path = ".env", config_path: str | Path | Non
     return AppConfig(
         llm_provider=os.getenv("LLM_PROVIDER", extra.get("LLM_PROVIDER", "OpenAI")),
         llm_model=os.getenv("LLM_MODEL", extra.get("LLM_MODEL", "")),
+        llm_model_cheap=os.getenv("LLM_MODEL_CHEAP", extra.get("LLM_MODEL_CHEAP", "")),
         llm_temperature=float(os.getenv("LLM_TEMPERATURE", extra.get("LLM_TEMPERATURE", 0))),
         default_region=os.getenv("DEFAULT_REGION", extra.get("DEFAULT_REGION", "IN")),
         max_repos=int(os.getenv("MAX_REPOS", extra.get("MAX_REPOS", 30))),
         max_files_to_read=int(os.getenv("MAX_FILES_TO_READ", extra.get("MAX_FILES_TO_READ", 10))),
+        recency_days=int(os.getenv("RECENCY_DAYS", extra.get("RECENCY_DAYS", 365))),
+        recency_as_of=os.getenv("RECENCY_AS_OF", extra.get("RECENCY_AS_OF", "")),
         github_token=os.getenv("GITHUB_TOKEN", extra.get("GITHUB_TOKEN", "")),
+        leetcode_enabled=os.getenv("LEETCODE_ENABLED", str(extra.get("LEETCODE_ENABLED", "true"))).lower() == "true",
+        orcid_enabled=os.getenv("ORCID_ENABLED", str(extra.get("ORCID_ENABLED", "false"))).lower() == "true",
         cache_path=os.getenv("CACHE_PATH", extra.get("CACHE_PATH", "./.cache/responses.db")),
         source_trust=trust,
     )
