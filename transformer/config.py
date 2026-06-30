@@ -33,7 +33,6 @@ class AppConfig:
     recency_as_of: str = ""
     github_token: str = ""
     leetcode_enabled: bool = True
-    orcid_enabled: bool = False
     cache_path: str = "./.cache/responses.db"
     source_trust: dict[str, dict[str, int]] | None = None
 
@@ -70,7 +69,6 @@ def load_app_config(env_path: str | Path = ".env", config_path: str | Path | Non
         recency_as_of=os.getenv("RECENCY_AS_OF", extra.get("RECENCY_AS_OF", "")),
         github_token=os.getenv("GITHUB_TOKEN", extra.get("GITHUB_TOKEN", "")),
         leetcode_enabled=os.getenv("LEETCODE_ENABLED", str(extra.get("LEETCODE_ENABLED", "true"))).lower() == "true",
-        orcid_enabled=os.getenv("ORCID_ENABLED", str(extra.get("ORCID_ENABLED", "false"))).lower() == "true",
         cache_path=os.getenv("CACHE_PATH", extra.get("CACHE_PATH", "./.cache/responses.db")),
         source_trust=trust,
     )

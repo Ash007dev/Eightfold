@@ -9,7 +9,7 @@
   <img alt="Pytest" src="https://img.shields.io/badge/Tests-Pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white">
 </p>
 
-A deterministic Python CLI for the Eightfold multi-source candidate transformer assignment. It ingests messy candidate data from ATS JSON, recruiter CSV, resumes, notes, GitHub, and best-effort LeetCode evidence, then emits one canonical, deduplicated, provenance-tracked, confidence-scored JSON profile per candidate.
+A deterministic Python CLI for the Eightfold multi-source candidate transformer assignment. It ingests messy candidate data from ATS JSON, recruiter CSV, resumes, notes, GitHub, and LeetCode evidence, then emits one canonical, deduplicated, provenance-tracked, confidence-scored JSON profile per candidate.
 
 The important design split is:
 
@@ -57,7 +57,7 @@ flowchart LR
   C --> C1[CSV / ATS exact]
   C --> C2[Resume / notes OpenAI extraction]
   C --> C3[GitHub authored repo evidence]
-  C --> C4[LeetCode best-effort cross-check]
+  C --> C4[LeetCode language cross-check]
 ```
 
 ```mermaid
@@ -82,9 +82,7 @@ flowchart TD
 | GitHub profile | Supported | Authored commits gate strong language evidence. |
 | GitHub repo files | Supported | Weak "project uses X" evidence, tiered by taxonomy. |
 | GitHub topics | Supported | Weak skill hints only. |
-| LeetCode | Best effort | Unofficial GraphQL language cross-check; failures return no evidence. |
-| ORCID | Stretch | Not implemented in the strong submission. |
-| Neo4j graph | Stretch | Not implemented; would be optional and non-affecting. |
+| LeetCode | Supported | Language cross-check through the public GraphQL endpoint; failures return no evidence. |
 
 ## Evidence Model
 
@@ -160,7 +158,6 @@ RECENCY_DAYS=365
 RECENCY_AS_OF=
 GITHUB_TOKEN=
 LEETCODE_ENABLED=true
-ORCID_ENABLED=false
 CACHE_PATH=./.cache/responses.db
 ```
 
@@ -250,12 +247,8 @@ Current suite covers:
 - Eightfold did not provide official sample inputs, so `samples/` contains synthetic fixtures.
 - Default phone region is `IN`, configurable through `.env`.
 - Name alone never merges two records.
-- LeetCode is unofficial and fragile, so it is best effort and fail-closed.
+- LeetCode uses a public GraphQL endpoint, so network/API failures fail closed and add no evidence.
 - The committed cache fixture exists for repeatable demos.
-
-## Descoped
-
-LinkedIn ingestion, certificates, ORCID enrichment, and Neo4j export are intentionally descoped from the strong submission. A graph export would be optional and must not change JSON output.
 
 ## Design Decision
 
