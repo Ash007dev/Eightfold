@@ -233,6 +233,11 @@ def extract(path: Path, config: AppConfig) -> list[Observation]:
                 if field == "links.leetcode" and username:
                     leetcode_usernames.add(username)
                 observations.append(Observation(field=field, value=link, source="github", method="regex", candidate_hint=hint))
+        if leetcode_usernames:
+            from transformer.evidence.leetcode import extract_username
+
+            for username in sorted(leetcode_usernames):
+                observations.extend(extract_username(username, config, candidate_hint=hint))
 
         repos = _get_json(f"https://api.github.com/users/{login}/repos?per_page=100", config, cache)
         if not isinstance(repos, list):

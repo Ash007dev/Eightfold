@@ -17,4 +17,6 @@ def detect_source(path: str | Path) -> str | None:
         return "notes"
     if name.startswith("github") and suffix == ".txt":
         return "github"
+    if name.startswith("leetcode") and suffix == ".txt":
+        return "leetcode"
     return None

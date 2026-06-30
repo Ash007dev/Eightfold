@@ -15,6 +15,7 @@ def _registry() -> dict[str, Extractor]:
     from transformer.extractors.ats_json import extract as ats_extract
     from transformer.extractors.csv_recruiter import extract as csv_extract
     from transformer.extractors.github import extract as github_extract
+    from transformer.extractors.leetcode import extract as leetcode_extract
     from transformer.extractors.notes import extract as notes_extract
     from transformer.extractors.resume import extract as resume_extract
 
@@ -24,6 +25,7 @@ def _registry() -> dict[str, Extractor]:
         "resume": resume_extract,
         "notes": notes_extract,
         "github": github_extract,
+        "leetcode": leetcode_extract,
     }
 
 
