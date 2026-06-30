@@ -1,35 +1,124 @@
 # Multi-Source Candidate Data Transformer
 
-This is a production-style Python 3.11 CLI for the Eightfold assignment. It ingests messy candidate data from structured sources, resumes, notes, and GitHub evidence, then emits one canonical, deduplicated, provenance-tracked, confidence-scored JSON profile per candidate. The key design split is canonical record vs projection config: the merger builds the internal truth, and `configs/*.json` decides the emitted shape without code changes.
+<p>
+  <img alt="Python 3.11" src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="CLI" src="https://img.shields.io/badge/Surface-CLI-111111?style=for-the-badge">
+  <img alt="OpenAI" src="https://img.shields.io/badge/LLM-OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white">
+  <img alt="SQLite cache" src="https://img.shields.io/badge/Cache-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
+  <img alt="Pydantic" src="https://img.shields.io/badge/Schema-Pydantic-E92063?style=for-the-badge">
+  <img alt="Pytest" src="https://img.shields.io/badge/Tests-Pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white">
+</p>
 
-## Run
+A deterministic Python CLI for the Eightfold multi-source candidate transformer assignment. It ingests messy candidate data from ATS JSON, recruiter CSV, resumes, notes, GitHub, and best-effort LeetCode evidence, then emits one canonical, deduplicated, provenance-tracked, confidence-scored JSON profile per candidate.
+
+The important design split is:
+
+```text
+canonical record != emitted output
+```
+
+The merge layer builds the full internal `CanonicalRecord`. The projection layer in `transformer/project.py` is the only output producer, and even the default output shape is just `configs/default.json`.
+
+## Quick Start
 
 ```powershell
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
+
 python -m transformer --inputs samples\candidate_01 --config configs\default.json
 python -m transformer --inputs samples\candidate_01 --config configs\custom_example.json
+
 python -m pytest -q
 ```
 
-The repository includes `.cache/responses.db`, pre-seeded with content-hash responses for the sample LLM and GitHub calls, so the demo and tests run offline and deterministically.
+Or run the demo script:
 
-## Sources
+```powershell
+.\demo.ps1
+```
 
-| Source | Status | Notes |
+The repo includes `.cache/responses.db`, pre-seeded with content-hash responses for the sample OpenAI and GitHub calls. The demo and tests run offline and deterministically.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  A[Input folder or manifest] --> B[detect.py]
+  B --> C[Extractors]
+  C --> D[Observation list]
+  D --> E[normalize.py + skills.py]
+  E --> F[merge.py identity + conflicts]
+  F --> G[confidence.py scoring]
+  G --> H[CanonicalRecord]
+  H --> I[project.py config projection]
+  I --> J[validate.py]
+  J --> K[Sorted JSON output]
+
+  C --> C1[CSV / ATS exact]
+  C --> C2[Resume / notes OpenAI extraction]
+  C --> C3[GitHub authored repo evidence]
+  C --> C4[LeetCode best-effort cross-check]
+```
+
+```mermaid
+flowchart TD
+  R[CanonicalRecord] --> P1[configs/default.json]
+  R --> P2[configs/custom_example.json]
+  R --> P3[Any runtime config]
+  P1 --> O1[Full profile JSON]
+  P2 --> O2[Remapped compact JSON]
+  P3 --> O3[No code-change output shape]
+```
+
+## What It Supports
+
+| Source | Status | How it is used |
 |---|---|---|
-| Recruiter CSV | Supported | Exact structured fields. |
-| ATS JSON | Supported | Explicit remap table for renamed fields. |
-| Resume TXT/PDF/DOCX | Supported | OpenAI proposes JSON; deterministic validators decide what enters the record. |
-| Scanned PDF resume | Supported | OCR fallback through `pytesseract` + local Tesseract. Missing OCR tooling degrades safely. |
-| Notes TXT | Supported | OpenAI proposes weak free-text signals only. |
-| GitHub | Supported | Authored commits gate strong repo evidence; file signals are weak "project uses X" signals. |
-| LeetCode | Best effort | Unofficial GraphQL endpoint; failures contribute zero evidence. |
-| ORCID | Stretch | Public API planned, off by default in this strong submission. |
+| Recruiter CSV | Supported | Exact structured observations. |
+| ATS JSON | Supported | Explicit field remap for renamed source fields. |
+| Resume TXT/PDF/DOCX | Supported | OpenAI proposes JSON; validators decide what enters the record. |
+| Scanned PDF resume | Supported | OCR fallback through `pytesseract` and local Tesseract. |
+| Recruiter notes | Supported | Weak free-text skill/seniority hints. |
+| GitHub profile | Supported | Authored commits gate strong language evidence. |
+| GitHub repo files | Supported | Weak "project uses X" evidence, tiered by taxonomy. |
+| GitHub topics | Supported | Weak skill hints only. |
+| LeetCode | Best effort | Unofficial GraphQL language cross-check; failures return no evidence. |
+| ORCID | Stretch | Not implemented in the strong submission. |
+| Neo4j graph | Stretch | Not implemented; would be optional and non-affecting. |
 
-## PDF Resumes
+## Evidence Model
 
-PDF resumes are supported. Put a text-based PDF in any input folder and the detector treats it as a resume:
+The confidence score is a pure function of provenance rows and recorded signals. No LLM decides identity, winners, or scores.
+
+| Evidence | Score delta |
+|---|---:|
+| Present in one source | `+3` |
+| Present in 2+ independent sources | `+2` |
+| GitHub authored language evidence | `+3` |
+| LeetCode solved-language evidence and claimed elsewhere | `+2` |
+| GitHub file signal in infra, CI/CD, DB/API, or framework tier | `+1` |
+| Ownership file confirms login in `.mailmap`, `AUTHORS`, `CONTRIBUTORS`, `CODEOWNERS`, or `CITATION.cff` | `+1` |
+| Recent repo activity relative to deterministic `RECENCY_AS_OF` | `+0.5` |
+| Stars present across authored repos | `+0.25` |
+| Only weak uncorroborated evidence | `-1` |
+| Tooling-only file signal, such as `tsconfig.json` | `0 skill credit` |
+
+File signals are intentionally conservative. A Dockerfile means "project uses Docker", not "expert in Docker". Topics, stars, and recency can corroborate or break ties, but they do not create top skills by themselves.
+
+## OpenAI Routing
+
+The LLM wrapper has two deterministic cloud tiers:
+
+| Tier | Config | Used for |
+|---|---|---|
+| Strong | `LLM_MODEL=gpt-5.5` | Resume and notes extraction. |
+| Cheap | `LLM_MODEL_CHEAP=gpt-5.4-mini` | Low-stakes triage, such as choosing which authored GitHub repos to deep-scan. |
+
+Both tiers use temperature `0`, JSON-only prompts, and SQLite content-hash caching. Routing chooses only which model runs or which repos are inspected; validators, merge rules, and confidence scoring remain deterministic.
+
+## PDF And OCR Resumes
+
+Drop a resume PDF into any input folder:
 
 ```text
 my_candidate/
@@ -40,177 +129,54 @@ my_candidate/
   github.txt
 ```
 
-Then run:
+Run:
 
 ```powershell
 python -m transformer --inputs my_candidate --config configs\default.json
 ```
 
-There are PDF fixtures under `samples\candidate_pdf\`: one text-based PDF and one scanned/image-only PDF. Text-based PDFs work with `pdfplumber`. Scanned PDFs use OCR through `pytesseract`, which also needs the Tesseract OCR program installed on your machine.
-
-On Windows, install Tesseract first, then install Python requirements:
+Text-based PDFs are read with `pdfplumber`. Scanned/image-only PDFs use OCR through `pytesseract`, which also needs the Tesseract OCR program installed.
 
 ```powershell
 winget install UB-Mannheim.TesseractOCR
 python -m pip install -r requirements.txt
 ```
 
-If Tesseract is missing, scanned pages safely contribute no resume text instead of crashing the run.
+If OCR tooling is missing, scanned pages safely contribute no resume text instead of crashing the run.
 
-## Architecture
+## Config
 
-```text
-files / manifest
-  -> detect.py
-  -> extractors/*
-       CSV + ATS: exact observations
-       Resume + notes: LLM proposes JSON, code validates
-       GitHub: authored commits gate strong skill evidence
-  -> merge.py
-       identity match, normalization, conflict resolution
-  -> confidence.py
-       pure score function from provenance signals
-  -> CanonicalRecord
-  -> project.py + validate.py
-       config-driven output shape
-  -> sorted JSON
+`.env.example` contains every runtime knob:
+
+```env
+LLM_PROVIDER=OpenAI
+LLM_MODEL=gpt-5.5
+LLM_MODEL_CHEAP=gpt-5.4-mini
+LLM_TEMPERATURE=0
+DEFAULT_REGION=IN
+MAX_REPOS=30
+MAX_FILES_TO_READ=10
+RECENCY_DAYS=365
+RECENCY_AS_OF=
+GITHUB_TOKEN=
+LEETCODE_ENABLED=true
+ORCID_ENABLED=false
+CACHE_PATH=./.cache/responses.db
 ```
 
-`CanonicalRecord` remains internal. The projection engine is the only output producer, including for the default schema in `configs/default.json`.
+`.env` is git-ignored. Do not commit real API keys.
 
-## Evidence Model
+## Output Examples
 
-Skill confidence is a deterministic score out of 10, emitted as `score / 10`:
+Full default output is committed here:
 
-| Signal | Delta |
-|---|---:|
-| Present in one source | `+3` |
-| Present in two or more independent sources | `+2` |
-| GitHub authored language evidence | `+3` |
-| LeetCode solved-language evidence, when also claimed elsewhere | `+2` |
-| GitHub file signal in infra, CI/CD, DB/API, or framework tier | `+1` |
-| Ownership file confirms the login in `.mailmap`, `AUTHORS`, `CONTRIBUTORS`, `CODEOWNERS`, or `CITATION.cff` | `+1` |
-| Recent repo activity, relative to deterministic `RECENCY_AS_OF` | `+0.5` |
-| Stars present across authored repos | `+0.25` |
-| Only weak uncorroborated evidence such as notes, topics, or LeetCode-only | `-1` |
-| Tooling-only file signals such as `tsconfig.json` | `0 skill credit` |
+- `samples/candidate_01.gold.json`
 
-File-signal tiers are intentionally conservative. A Dockerfile proves "project uses Docker", not "expert in Docker". Topics, stars, and recency can corroborate or break ties, but they never create a top skill on their own.
+Custom projection:
 
-## OpenAI Routing
-
-The LLM wrapper supports two deterministic OpenAI tiers:
-
-- `LLM_MODEL` is the strong model for resume and notes extraction.
-- `LLM_MODEL_CHEAP` is the cheap model for low-stakes triage, such as choosing which authored GitHub repos to deep-scan when there are too many.
-
-Both tiers use temperature `0`, JSON-only prompts, and SQLite content-hash caching. Routing chooses only which model runs or which repos to inspect; deterministic validators, merge rules, and confidence scoring still decide what is accepted.
-
-## Default Output
-
-```json
-[
-  {
-    "candidate_id": "cand_d97d85b6ef3e",
-    "education": [
-      {
-        "degree": "B.Tech",
-        "end_year": 2021,
-        "field": "Computer Science",
-        "institution": "National Institute of Technology Karnataka"
-      }
-    ],
-    "emails": [
-      "ananya.rao@example.com"
-    ],
-    "experience": [
-      {
-        "company": "Vector Labs",
-        "end": null,
-        "start": "2023-01",
-        "summary": "Built Python services, Kubernetes deployment workflows, and JavaScript developer tooling.",
-        "title": "Senior Backend Engineer"
-      }
-    ],
-    "full_name": "Ananya Rao",
-    "headline": "Backend platform engineer",
-    "links": {
-      "github": "https://github.com/ananyarao",
-      "linkedin": null,
-      "other": [
-        "https://ananya.dev"
-      ],
-      "portfolio": "https://ananya.dev"
-    },
-    "location": {
-      "city": "Bengaluru",
-      "country": "IN",
-      "region": "Karnataka"
-    },
-    "overall_confidence": 0.515,
-    "phones": [
-      "+919988776655",
-      "+919876543210"
-    ],
-    "provenance": [
-      {"field": "education", "method": "llm_extraction", "selected": true, "source": "resume", "value": 2021},
-      {"field": "education", "method": "llm_extraction", "selected": true, "source": "resume", "value": "B.Tech"},
-      {"field": "education", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Computer Science"},
-      {"field": "education", "method": "llm_extraction", "selected": true, "source": "resume", "value": "National Institute of Technology Karnataka"},
-      {"field": "emails", "method": "exact", "selected": true, "source": "ats_json", "value": "ananya.rao@example.com"},
-      {"field": "emails", "method": "exact", "selected": true, "source": "recruiter_csv", "value": "ananya.rao@example.com"},
-      {"field": "emails", "method": "llm_extraction", "selected": true, "source": "resume", "value": "ananya.rao@example.com"},
-      {"field": "experience", "method": "exact", "selected": false, "source": "ats_json", "value": "Backend Engineer"},
-      {"field": "experience", "method": "exact", "selected": true, "source": "ats_json", "value": "Vector Labs"},
-      {"field": "experience", "method": "exact", "selected": true, "source": "recruiter_csv", "value": "Senior Backend Engineer"},
-      {"field": "experience", "method": "exact", "selected": true, "source": "recruiter_csv", "value": "Vector Labs"},
-      {"field": "experience", "method": "llm_extraction", "selected": true, "source": "resume", "value": "2023-01"},
-      {"field": "experience", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Built Python services, Kubernetes deployment workflows, and JavaScript developer tooling."},
-      {"field": "experience", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Senior Backend Engineer"},
-      {"field": "experience", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Vector Labs"},
-      {"field": "full_name", "method": "exact", "selected": true, "source": "ats_json", "value": "Ananya Rao"},
-      {"field": "full_name", "method": "exact", "selected": true, "source": "github", "value": "Ananya Rao"},
-      {"field": "full_name", "method": "exact", "selected": true, "source": "recruiter_csv", "value": "Ananya Rao"},
-      {"field": "full_name", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Ananya Rao"},
-      {"field": "headline", "method": "llm_extraction", "selected": false, "source": "notes", "value": "Senior backend engineer"},
-      {"field": "headline", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Backend platform engineer"},
-      {"field": "links", "method": "exact", "selected": true, "source": "ats_json", "value": "https://github.com/ananyarao"},
-      {"field": "links", "method": "regex", "selected": true, "source": "github", "value": "https://ananya.dev"},
-      {"field": "links", "method": "regex", "selected": true, "source": "github", "value": "https://ananya.dev"},
-      {"field": "links", "method": "regex", "selected": true, "source": "github", "value": "https://github.com/ananyarao"},
-      {"field": "location", "method": "exact", "selected": true, "source": "ats_json", "value": "Bengaluru"},
-      {"field": "location", "method": "exact", "selected": true, "source": "ats_json", "value": "IN"},
-      {"field": "location", "method": "exact", "selected": true, "source": "ats_json", "value": "Karnataka"},
-      {"field": "phones", "method": "exact", "selected": true, "source": "ats_json", "value": "+919876543210"},
-      {"field": "phones", "method": "exact", "selected": true, "source": "recruiter_csv", "value": "+919988776655"},
-      {"field": "phones", "method": "llm_extraction", "selected": true, "source": "resume", "value": "+919876543210"},
-      {"field": "skills", "method": "exact", "selected": true, "source": "ats_json", "value": "JavaScript"},
-      {"field": "skills", "method": "exact", "selected": true, "source": "ats_json", "value": "Python"},
-      {"field": "skills", "method": "github_authored", "selected": true, "source": "github", "value": "Python"},
-      {"field": "skills", "method": "github_authored", "selected": true, "source": "github", "value": "TypeScript"},
-      {"field": "skills", "method": "github_filesignal", "selected": true, "source": "github", "value": "Docker"},
-      {"field": "skills", "method": "github_filesignal", "selected": true, "source": "github", "value": "GitHub Actions"},
-      {"field": "skills", "method": "github_filesignal", "selected": true, "source": "github", "value": "Kubernetes"},
-      {"field": "skills", "method": "llm_extraction", "selected": true, "source": "notes", "value": "Kubernetes"},
-      {"field": "skills", "method": "llm_extraction", "selected": true, "source": "notes", "value": "Python"},
-      {"field": "skills", "method": "llm_extraction", "selected": true, "source": "resume", "value": "JavaScript"},
-      {"field": "skills", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Kubernetes"},
-      {"field": "skills", "method": "llm_extraction", "selected": true, "source": "resume", "value": "Python"}
-    ],
-    "skills": [
-      {"confidence": 0.8, "name": "Python", "sources": ["ats_json", "github", "notes", "resume"]},
-      {"confidence": 0.6, "name": "Kubernetes", "sources": ["github", "notes", "resume"]},
-      {"confidence": 0.6, "name": "TypeScript", "sources": ["github"]},
-      {"confidence": 0.5, "name": "JavaScript", "sources": ["ats_json", "resume"]},
-      {"confidence": 0.4, "name": "Docker", "sources": ["github"]},
-      {"confidence": 0.4, "name": "GitHub Actions", "sources": ["github"]}
-    ],
-    "years_experience": null
-  }
-]
+```powershell
+python -m transformer --inputs samples\candidate_01 --config configs\custom_example.json
 ```
-
-## Custom Output
 
 ```json
 [
@@ -236,19 +202,61 @@ Both tiers use temperature `0`, JSON-only prompts, and SQLite content-hash cachi
 ]
 ```
 
+## Repository Layout
+
+```text
+transformer/
+  __main__.py          CLI entry
+  config.py            .env/config loading
+  detect.py            source detection
+  models.py            pydantic models
+  cache.py             SQLite content-hash cache
+  llm.py               OpenAI wrapper and routing
+  normalize.py         phone/date/country/email normalizers
+  skills.py            skill aliases and canonicalization
+  merge.py             identity matching and conflict resolution
+  confidence.py        pure scoring formula
+  project.py           projection engine
+  validate.py          projected output validation
+  evidence/            file signals and LeetCode evidence
+  extractors/          source-specific extractors
+configs/
+samples/
+tests/
+```
+
+## Tests
+
+```powershell
+python -m pytest -q
+```
+
+Current suite covers:
+
+- golden pipeline output
+- corrupt source isolation
+- phone conflicts and provenance
+- homonym non-merge
+- normalizers and skill acronyms
+- projection path resolver
+- PDF and scanned-PDF OCR fallback
+- GitHub file-signal tiers
+- LeetCode degradation
+- cross-confirmed skill confidence
+- deterministic recency scoring
+
 ## Assumptions
 
-- Eightfold did not provide sample inputs, so `samples/` contains synthetic fixtures.
+- Eightfold did not provide official sample inputs, so `samples/` contains synthetic fixtures.
 - Default phone region is `IN`, configurable through `.env`.
-- `notes.txt` is treated as anonymous evidence and attached only when the run has exactly one strongly identified candidate group.
-- The committed cache fixture is for repeatable demos; live LLM/GitHub calls work when `.env` has the relevant settings.
+- Name alone never merges two records.
+- LeetCode is unofficial and fragile, so it is best effort and fail-closed.
+- The committed cache fixture exists for repeatable demos.
 
 ## Descoped
 
-LinkedIn ingestion, certificates, ORCID enrichment, and Neo4j export are intentionally descoped from the strong submission. Graph export would be optional and non-affecting: the canonical JSON output must stay identical whether graph export is off or on.
+LinkedIn ingestion, certificates, ORCID enrichment, and Neo4j export are intentionally descoped from the strong submission. A graph export would be optional and must not change JSON output.
 
-## Design Notes
+## Design Decision
 
-The design decision I am happiest with is the LLM-proposes/deterministic-validators-dispose boundary plus content-hash caching. Resume and notes extraction can use OpenAI models, but every proposed value is normalized or rejected before merge, and no LLM decides identity, winners, or scores. That makes the system useful with LLMs while staying deterministic and honest about missing data.
-
-One handled edge case: two people named Sam Patel in `samples/edge_homonym` stay as two profiles because name alone is never an identity key.
+The design decision I am happiest with is the LLM-proposes/deterministic-validators-dispose boundary plus content-hash caching. OpenAI can help turn prose into candidate-shaped JSON, but every proposed value is normalized or rejected before merge. Identity, conflict resolution, and confidence are pure code, so the system can use LLMs while staying deterministic and honest about missing data.
