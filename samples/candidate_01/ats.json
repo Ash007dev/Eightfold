@@ -1,0 +1,12 @@
+{
+  "candidateName": "Ananya Rao",
+  "emailAddress": "ANANYA.RAO@example.com",
+  "mobile": "9876543210",
+  "currentEmployer": "Vector Labs",
+  "jobTitle": "Backend Engineer",
+  "skillTags": ["py", "nodejs", "see resume"],
+  "city": "Bengaluru",
+  "region": "Karnataka",
+  "country": "India",
+  "githubUrl": "https://github.com/ananyarao"
+}

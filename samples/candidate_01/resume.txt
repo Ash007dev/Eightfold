@@ -1,0 +1,12 @@
+Ananya Rao
+Backend platform engineer in Bengaluru.
+
+Email: ananya.rao@example.com
+Phone: +91 98765 43210
+
+Experience
+Vector Labs - Senior Backend Engineer, Jan 2023 - Present
+Built Python services, Kubernetes deployment workflows, and JavaScript developer tooling.
+
+Education
+National Institute of Technology Karnataka - B.Tech Computer Science, 2021
