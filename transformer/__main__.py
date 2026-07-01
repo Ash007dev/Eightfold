@@ -74,6 +74,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out", type=Path, help="Output JSON path")
     parser.add_argument("--explain", action="store_true", help="Print provenance and confidence breakdown to stderr")
     parser.add_argument("--check-llm", action="store_true", help="Probe configured LLM credentials/model and print OK or the exact error")
+    parser.add_argument("--batch", action="store_true", help="Treat --inputs as a directory of per-candidate subfolders")
+    parser.add_argument("--stats", action="store_true", help="Print batch stats to stderr")
     return parser
 
 
@@ -89,10 +91,17 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--inputs is required unless --check-llm is used")
         return 2
     try:
-        app_config = load_app_config()
-        records = build_records(args.inputs, app_config)
-        projection_config = load_projection_config(args.config)
-        output = project_records(records, projection_config)
+        records: list[CanonicalRecord] = []
+        stats: dict | None = None
+        if args.batch:
+            from transformer.batch import run_batch
+
+            output, stats = run_batch(args.inputs, args.config)
+        else:
+            app_config = load_app_config()
+            records = build_records(args.inputs, app_config)
+            projection_config = load_projection_config(args.config)
+            output = project_records(records, projection_config)
     except Exception as exc:
         parser.error(str(exc))
         return 2
@@ -103,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         args.out.write_text(rendered + "\n", encoding="utf-8")
     else:
         print(rendered)
+    if args.stats and stats is not None:
+        print(json.dumps(stats, sort_keys=True), file=sys.stderr)
     if args.explain:
         print(_explain_records(records), file=sys.stderr)
     return 0
