@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from transformer.confidence import score_from_provenance
 from transformer.models import CanonicalRecord
 
 
@@ -23,12 +24,12 @@ def render_report(records: list[CanonicalRecord]) -> str:
             lines.append(f"  phones: {', '.join(phones)}")
 
         if record.skills:
-            breakdown = record.field_meta.get("skills").score_breakdown if record.field_meta.get("skills") else {}
             lines.append("  skills:")
             for skill in record.skills:
                 entries = [entry for entry in record.provenance if entry.field == "skills" and entry.value == skill.name]
                 methods = sorted({entry.method for entry in entries})
                 sources = sorted({entry.source for entry in entries})
+                _, breakdown = score_from_provenance(entries)
                 lines.append(
                     f"    {skill.name}  {skill.confidence:.2f}  sources={sources} methods={methods} breakdown={breakdown}"
                 )
