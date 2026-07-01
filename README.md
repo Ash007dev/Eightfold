@@ -415,8 +415,8 @@ Current suite covers:
 **Determinism**
 - All LLM and GitHub/LeetCode responses are cached by content hash (`.cache/responses.db`, committed), so the demo and tests run offline and reproducibly. LeetCode uses an unofficial public GraphQL endpoint and fails closed — any error adds no evidence rather than guessing.
 
-**Descoped (deliberate, under time pressure)**
-- **LinkedIn ingestion** — one of the brief's listed sources; left out due to auth/ToS friction. Links to a LinkedIn profile are still retained if present; profile scraping/verification is not implemented.
+**Out of scope**
+- **LinkedIn ingestion** — LinkedIn profile data requires authenticated access and has Terms of Service constraints. Some third-party scraping tools exist, but this project deliberately avoids that path. The pipeline retains LinkedIn links when present but does not scrape or verify profile content. This is a deliberate boundary, not an engine limitation.
 
 ## Design Decision
 
