@@ -18,12 +18,12 @@ def test_custom_projection_example() -> None:
                 "full_name": 0.5,
                 "phone": 0.5,
                 "primary_email": 0.5,
-                "skills": 0.9,
+                "skills": 1.0,
             },
             "full_name": "Ananya Rao",
             "primary_email": "ananya.rao@example.com",
             "phone": "+919988776655",
-            "skills": ["Python", "Kubernetes", "TypeScript", "JavaScript", "Docker", "GitHub Actions"],
+            "skills": ["Python", "JavaScript", "Kubernetes", "TypeScript", "Docker", "GitHub Actions"],
         }
     ]
 
@@ -36,4 +36,4 @@ def test_path_resolver_array_projection() -> None:
             observations.extend(extract_file(path, config))
     record = merge_observations(observations, config)[0]
     assert resolve_path(record, "emails[0]") == "ananya.rao@example.com"
-    assert resolve_path(record, "skills[].name")[:2] == ["Python", "Kubernetes"]
+    assert resolve_path(record, "skills[].name")[:2] == ["Python", "JavaScript"]

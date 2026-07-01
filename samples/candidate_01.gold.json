@@ -38,7 +38,7 @@
       "country": "IN",
       "region": "Karnataka"
     },
-    "overall_confidence": 0.515,
+    "overall_confidence": 0.552,
     "phones": [
       "+919988776655",
       "+919876543210"
@@ -372,6 +372,26 @@
         "value": "Kubernetes"
       },
       {
+        "confidence_signals": {
+          "solved": 3
+        },
+        "field": "skills",
+        "method": "leetcode_solved",
+        "selected": true,
+        "source": "leetcode",
+        "value": "JavaScript"
+      },
+      {
+        "confidence_signals": {
+          "solved": 42
+        },
+        "field": "skills",
+        "method": "leetcode_solved",
+        "selected": true,
+        "source": "leetcode",
+        "value": "Python"
+      },
+      {
         "confidence_signals": {},
         "field": "skills",
         "method": "llm_extraction",
@@ -414,12 +434,22 @@
     ],
     "skills": [
       {
-        "confidence": 0.8,
+        "confidence": 1.0,
         "name": "Python",
         "sources": [
           "ats_json",
           "github",
+          "leetcode",
           "notes",
+          "resume"
+        ]
+      },
+      {
+        "confidence": 0.7,
+        "name": "JavaScript",
+        "sources": [
+          "ats_json",
+          "leetcode",
           "resume"
         ]
       },
@@ -437,14 +467,6 @@
         "name": "TypeScript",
         "sources": [
           "github"
-        ]
-      },
-      {
-        "confidence": 0.5,
-        "name": "JavaScript",
-        "sources": [
-          "ats_json",
-          "resume"
         ]
       },
       {

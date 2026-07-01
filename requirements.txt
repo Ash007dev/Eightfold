@@ -7,4 +7,5 @@ python-docx>=1.1
 pytesseract>=0.3.13
 requests>=2.32
 openai>=1.35
+anthropic>=0.40
 pytest>=8.2

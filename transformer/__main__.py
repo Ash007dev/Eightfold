@@ -6,10 +6,12 @@ import logging
 import sys
 from pathlib import Path
 
-from transformer.config import load_app_config, load_projection_config
+from transformer.config import AppConfig, load_app_config, load_projection_config
+from transformer.confidence import score_from_provenance
 from transformer.extractors import extract_file
+from transformer.llm import LLMClient
 from transformer.merge import merge_observations
-from transformer.models import Observation
+from transformer.models import CanonicalRecord, Observation
 from transformer.project import project_records
 
 
@@ -36,22 +38,42 @@ def collect_observations(inputs: Path) -> list[Observation]:
     return observations
 
 
-def run_pipeline(inputs: Path, projection_config_path: Path | None = None) -> list[dict]:
-    app_config = load_app_config()
+def build_records(inputs: Path, app_config: AppConfig | None = None) -> list[CanonicalRecord]:
+    app_config = app_config or load_app_config()
     observations: list[Observation] = []
     for path in _input_files(inputs):
         observations.extend(extract_file(path, app_config))
-    records = merge_observations(observations, app_config)
+    return merge_observations(observations, app_config)
+
+
+def run_pipeline(inputs: Path, projection_config_path: Path | None = None) -> list[dict]:
+    records = build_records(inputs)
     projection_config = load_projection_config(projection_config_path)
     return project_records(records, projection_config)
 
 
+def _explain_records(records: list[CanonicalRecord]) -> str:
+    lines: list[str] = []
+    for record in records:
+        lines.append(f"candidate_id={record.candidate_id} overall_confidence={record.overall_confidence}")
+        for skill in record.skills:
+            entries = [row for row in record.provenance if row.field == "skills" and row.value == skill.name]
+            _, breakdown = score_from_provenance(entries)
+            methods = sorted({row.method for row in entries})
+            sources = sorted({row.source for row in entries})
+            lines.append(
+                f"skill={skill.name} confidence={skill.confidence} sources={sources} methods={methods} breakdown={breakdown}"
+            )
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Multi-source candidate data transformer")
-    parser.add_argument("--inputs", required=True, type=Path, help="Input directory or manifest JSON")
+    parser.add_argument("--inputs", type=Path, help="Input directory or manifest JSON")
     parser.add_argument("--config", type=Path, default=Path("configs/default.json"), help="Projection config path")
     parser.add_argument("--out", type=Path, help="Output JSON path")
     parser.add_argument("--explain", action="store_true", help="Print provenance and confidence breakdown to stderr")
+    parser.add_argument("--check-llm", action="store_true", help="Probe configured LLM credentials/model and print OK or the exact error")
     return parser
 
 
@@ -59,8 +81,18 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s:%(name)s:%(message)s")
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.check_llm:
+        ok, message = LLMClient(load_app_config()).selftest()
+        print(message)
+        return 0 if ok else 1
+    if args.inputs is None:
+        parser.error("--inputs is required unless --check-llm is used")
+        return 2
     try:
-        output = run_pipeline(args.inputs, args.config)
+        app_config = load_app_config()
+        records = build_records(args.inputs, app_config)
+        projection_config = load_projection_config(args.config)
+        output = project_records(records, projection_config)
     except Exception as exc:
         parser.error(str(exc))
         return 2
@@ -72,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(rendered)
     if args.explain:
-        print(rendered, file=sys.stderr)
+        print(_explain_records(records), file=sys.stderr)
     return 0
 
 

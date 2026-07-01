@@ -25,6 +25,7 @@ The merge layer builds the full internal `CanonicalRecord`. The projection layer
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 
+python -m transformer --check-llm
 python -m transformer --inputs samples\candidate_01 --config configs\default.json
 python -m transformer --inputs samples\candidate_01 --config configs\custom_example.json
 
@@ -38,6 +39,59 @@ Or run the demo script:
 ```
 
 The repo includes `.cache/responses.db`, pre-seeded with content-hash responses for the sample OpenAI and GitHub calls. The demo and tests run offline and deterministically.
+
+## Run On Your Own Data
+
+Create one folder per candidate:
+
+```text
+my_candidate/
+  ats.json
+  recruiter.csv
+  resume.pdf
+  github.txt
+  leetcode.txt
+  notes.txt
+```
+
+`github.txt` can contain a profile URL such as:
+
+```text
+https://github.com/octocat
+```
+
+`leetcode.txt` can contain either a username or profile URL. LeetCode uses a public GraphQL endpoint; if it fails or changes, it adds no evidence and the run continues.
+
+Create `.env`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Set at least:
+
+```env
+OPENAI_API_KEY=your_key_here
+LLM_PROVIDER=OpenAI
+LLM_MODEL=gpt-5.4-mini
+LLM_MODEL_CHEAP=gpt-5.4-mini
+GITHUB_TOKEN=your_github_token_here
+```
+
+`gpt-5.4-mini` is the cheap reliable default. `gpt-5.5` can be used if your key has access and you are comfortable with higher cost. `GITHUB_TOKEN` is required for meaningful GitHub output; without it, GitHub's unauthenticated limit is very low and you will quickly hit rate limits.
+
+Probe the model/key before running a full transform:
+
+```powershell
+python -m transformer --check-llm
+```
+
+Run default and custom projections:
+
+```powershell
+python -m transformer --inputs my_candidate --config configs\default.json --out out\candidate.default.json
+python -m transformer --inputs my_candidate --config configs\custom_example.json --out out\candidate.custom.json
+```
 
 ## Architecture
 
@@ -83,6 +137,8 @@ flowchart TD
 | GitHub repo files | Supported | Weak "project uses X" evidence, tiered by taxonomy. |
 | GitHub topics | Supported | Weak skill hints only. |
 | LeetCode | Supported | Language cross-check through the public GraphQL endpoint; failures return no evidence. |
+| ORCID link | Captured only | ORCID URLs can be classified as links, but works are not verified. |
+| LinkedIn | Descoped | Links can be retained; profile scraping/verification is not implemented. |
 
 ## Evidence Model
 
@@ -113,6 +169,8 @@ The LLM wrapper has two deterministic cloud tiers:
 | Cheap | `LLM_MODEL_CHEAP=gpt-5.4-mini` | Low-stakes triage, such as choosing which authored GitHub repos to deep-scan. |
 
 Both tiers use temperature `0`, JSON-only prompts, and SQLite content-hash caching. Routing chooses only which model runs or which repos are inspected; validators, merge rules, and confidence scoring remain deterministic.
+
+If a configured model rejects the temperature parameter, the wrapper retries once without that parameter. If the final call fails, it logs a clear one-line warning with the model id instead of silently pretending extraction worked.
 
 ## PDF And OCR Resumes
 
@@ -168,6 +226,7 @@ CACHE_PATH=./.cache/responses.db
 Full default output is committed here:
 
 - `samples/candidate_01.gold.json`
+- `samples/candidate_01.custom.json`
 
 Custom projection:
 
@@ -182,16 +241,16 @@ python -m transformer --inputs samples\candidate_01 --config configs\custom_exam
       "full_name": 0.5,
       "phone": 0.5,
       "primary_email": 0.5,
-      "skills": 0.9
+      "skills": 1.0
     },
     "full_name": "Ananya Rao",
     "phone": "+919988776655",
     "primary_email": "ananya.rao@example.com",
     "skills": [
       "Python",
+      "JavaScript",
       "Kubernetes",
       "TypeScript",
-      "JavaScript",
       "Docker",
       "GitHub Actions"
     ]
@@ -249,6 +308,13 @@ Current suite covers:
 - Name alone never merges two records.
 - LeetCode uses a public GraphQL endpoint, so network/API failures fail closed and add no evidence.
 - The committed cache fixture exists for repeatable demos.
+
+## Descoped
+
+- ORCID work verification.
+- Neo4j graph export.
+- LinkedIn profile ingestion or scraping.
+- Anthropic is available only when `LLM_PROVIDER=anthropic` is configured; the default path is OpenAI.
 
 ## Design Decision
 
