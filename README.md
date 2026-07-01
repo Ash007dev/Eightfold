@@ -19,22 +19,68 @@ canonical record != emitted output
 
 The merge layer builds the full internal `CanonicalRecord`. The projection layer in `transformer/project.py` is the only output producer, and even the default output shape is just `configs/default.json`.
 
-## Quick Start
+## Setup (macOS / Linux / Windows)
 
-```powershell
+Requires **Python 3.11+**. Works on macOS, Linux, and Windows.
+
+```bash
+# 1. create + activate a virtual environment
+python -m venv .venv
+# macOS / Linux:
+source .venv/bin/activate
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Windows (cmd):
+.venv\Scripts\activate.bat
+
+# 2. install dependencies
 python -m pip install -r requirements.txt
+
+# 3. copy the env template
+# macOS / Linux:
+cp .env.example .env
+# Windows (PowerShell):
 Copy-Item .env.example .env
+```
 
-python -m transformer --check-llm
-python -m transformer --inputs samples\candidate_01 --config configs\default.json
-python -m transformer --inputs samples\candidate_01 --config configs\custom_example.json
+> Optional: scanned-PDF resumes use OCR via Tesseract. It is optional — without it, scanned pages contribute no text instead of failing. Install only if needed: macOS `brew install tesseract`, Debian/Ubuntu `sudo apt-get install tesseract-ocr`, Windows via the UB-Mannheim installer.
 
+## CLI Reference
+
+```bash
+python -m transformer --inputs <dir|manifest.json> [--config <path>] [--out <path>] [--explain]
+```
+
+| Flag | Required | Default | What it does |
+|------|----------|---------|--------------|
+| `--inputs`  | yes | — | Folder of source files (auto-detected) or a manifest JSON |
+| `--config`  | no  | `configs/default.json` | Projection config — the runtime output shape (the "twist") |
+| `--out`     | no  | stdout | Where to write the JSON profile |
+| `--explain` | no  | off | Also print provenance + confidence breakdown to stderr |
+
+Examples (paths use forward slashes and work on every OS):
+
+```bash
+# default schema, printed to screen
+python -m transformer --inputs samples/candidate_01
+
+# custom output shape — the required runtime twist
+python -m transformer --inputs samples/candidate_01 --config configs/custom_example.json
+
+# write to a file, with the confidence + provenance breakdown
+python -m transformer --inputs samples/candidate_01 --out out/profile.json --explain
+
+# run the tests
 python -m pytest -q
 ```
 
-Or run the demo script:
+## Demo script
 
-```powershell
+```bash
+# macOS / Linux
+./demo.sh
+
+# Windows (PowerShell)
 .\demo.ps1
 ```
 
@@ -86,11 +132,17 @@ Probe the model/key before running a full transform:
 python -m transformer --check-llm
 ```
 
-Run default and custom projections:
+Probe the model/key before running a full transform:
 
 ```powershell
-python -m transformer --inputs my_candidate --config configs\default.json --out out\candidate.default.json
-python -m transformer --inputs my_candidate --config configs\custom_example.json --out out\candidate.custom.json
+python -m transformer --check-llm
+```
+
+Run default and custom projections:
+
+```bash
+python -m transformer --inputs my_candidate --config configs/default.json --out out/candidate.default.json
+python -m transformer --inputs my_candidate --config configs/custom_example.json --out out/candidate.custom.json
 ```
 
 ## Architecture
@@ -163,11 +215,11 @@ File signals are intentionally conservative. A Dockerfile means "project uses Do
 
 Batch mode treats `--inputs` as a directory of per-candidate subfolders and reuses the exact same single-candidate pipeline for each folder:
 
-```powershell
-python -m transformer --inputs samples\batch10 --batch --stats --config configs\default.json
+```bash
+python -m transformer --inputs samples/batch10 --batch --stats --config configs/default.json
 ```
 
-`samples\batch10` is structured-only, so it runs offline with no API or LLM calls. It includes:
+`samples/batch10` is structured-only, so it runs offline with no API or LLM calls. It includes:
 
 - same-person CSV+ATS folders where email matches, phone formats normalize to E.164, and company conflicts resolve by field trust
 - a same-name homonym pair that stays as two profiles because name alone never merges
@@ -175,8 +227,8 @@ python -m transformer --inputs samples\batch10 --batch --stats --config configs\
 
 Scale benchmark:
 
-```powershell
-python scripts\scale_benchmark.py --n 1000
+```bash
+python scripts/scale_benchmark.py --n 1000
 ```
 
 Sample result on this machine:
@@ -193,8 +245,8 @@ The benchmark measures the transformer engine on structured sources, not third-p
 
 For a human-readable confidence/provenance report, keep JSON on stdout and print the report to stderr:
 
-```powershell
-python -m transformer --inputs samples\candidate_01 --config configs\default.json --report
+```bash
+python -m transformer --inputs samples/candidate_01 --config configs/default.json --report
 ```
 
 The report formats existing canonical provenance and score breakdowns. It does not recompute merge winners or confidence.
@@ -227,13 +279,13 @@ my_candidate/
 
 Run:
 
-```powershell
-python -m transformer --inputs my_candidate --config configs\default.json
+```bash
+python -m transformer --inputs my_candidate --config configs/default.json
 ```
 
 Text-based PDFs are read with `pdfplumber`. Scanned/image-only PDFs use OCR through `pytesseract`, which also needs the Tesseract OCR program installed.
 
-```powershell
+```bash
 winget install UB-Mannheim.TesseractOCR
 python -m pip install -r requirements.txt
 ```
@@ -270,8 +322,8 @@ Full default output is committed here:
 
 Custom projection:
 
-```powershell
-python -m transformer --inputs samples\candidate_01 --config configs\custom_example.json
+```bash
+python -m transformer --inputs samples/candidate_01 --config configs/custom_example.json
 ```
 
 ```json

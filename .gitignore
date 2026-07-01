@@ -3,6 +3,10 @@ __pycache__/
 .pytest_cache/
 .env
 out/
+!out/
+out/*
+!out/candidate_01.default.json
+!out/candidate_01.custom.json
 
 .cache/*
 !.cache/responses.db

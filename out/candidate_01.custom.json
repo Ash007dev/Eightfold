@@ -1,0 +1,21 @@
+[
+  {
+    "_confidence": {
+      "full_name": 0.5,
+      "phone": 0.5,
+      "primary_email": 0.5,
+      "skills": 1.0
+    },
+    "full_name": "Ananya Rao",
+    "phone": "+919988776655",
+    "primary_email": "ananya.rao@example.com",
+    "skills": [
+      "Python",
+      "JavaScript",
+      "Kubernetes",
+      "TypeScript",
+      "Docker",
+      "GitHub Actions"
+    ]
+  }
+]

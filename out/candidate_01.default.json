@@ -1,0 +1,489 @@
+[
+  {
+    "candidate_id": "cand_d97d85b6ef3e",
+    "education": [
+      {
+        "degree": "B.Tech",
+        "end_year": 2021,
+        "field": "Computer Science",
+        "institution": "National Institute of Technology Karnataka"
+      }
+    ],
+    "emails": [
+      "ananya.rao@example.com"
+    ],
+    "experience": [
+      {
+        "company": "Vector Labs",
+        "end": null,
+        "start": "2023-01",
+        "summary": "Built Python services, Kubernetes deployment workflows, and JavaScript developer tooling.",
+        "title": "Senior Backend Engineer"
+      }
+    ],
+    "full_name": "Ananya Rao",
+    "headline": "Backend platform engineer",
+    "links": {
+      "github": "https://github.com/ananyarao",
+      "leetcode": null,
+      "linkedin": null,
+      "orcid": null,
+      "other": [
+        "https://ananya.dev"
+      ],
+      "portfolio": "https://ananya.dev"
+    },
+    "location": {
+      "city": "Bengaluru",
+      "country": "IN",
+      "region": "Karnataka"
+    },
+    "overall_confidence": 0.552,
+    "phones": [
+      "+919988776655",
+      "+919876543210"
+    ],
+    "provenance": [
+      {
+        "confidence_signals": {},
+        "field": "education",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": 2021
+      },
+      {
+        "confidence_signals": {},
+        "field": "education",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "B.Tech"
+      },
+      {
+        "confidence_signals": {},
+        "field": "education",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Computer Science"
+      },
+      {
+        "confidence_signals": {},
+        "field": "education",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "National Institute of Technology Karnataka"
+      },
+      {
+        "confidence_signals": {},
+        "field": "emails",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "ananya.rao@example.com"
+      },
+      {
+        "confidence_signals": {},
+        "field": "emails",
+        "method": "exact",
+        "selected": true,
+        "source": "recruiter_csv",
+        "value": "ananya.rao@example.com"
+      },
+      {
+        "confidence_signals": {},
+        "field": "emails",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "ananya.rao@example.com"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "exact",
+        "selected": false,
+        "source": "ats_json",
+        "value": "Backend Engineer"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "Vector Labs"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "exact",
+        "selected": true,
+        "source": "recruiter_csv",
+        "value": "Senior Backend Engineer"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "exact",
+        "selected": true,
+        "source": "recruiter_csv",
+        "value": "Vector Labs"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "2023-01"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Built Python services, Kubernetes deployment workflows, and JavaScript developer tooling."
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Senior Backend Engineer"
+      },
+      {
+        "confidence_signals": {},
+        "field": "experience",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Vector Labs"
+      },
+      {
+        "confidence_signals": {},
+        "field": "full_name",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "Ananya Rao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "full_name",
+        "method": "exact",
+        "selected": true,
+        "source": "github",
+        "value": "Ananya Rao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "full_name",
+        "method": "exact",
+        "selected": true,
+        "source": "recruiter_csv",
+        "value": "Ananya Rao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "full_name",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Ananya Rao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "headline",
+        "method": "llm_extraction",
+        "selected": false,
+        "source": "notes",
+        "value": "Senior backend engineer"
+      },
+      {
+        "confidence_signals": {},
+        "field": "headline",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Backend platform engineer"
+      },
+      {
+        "confidence_signals": {},
+        "field": "links",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "https://github.com/ananyarao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "links",
+        "method": "regex",
+        "selected": true,
+        "source": "github",
+        "value": "https://ananya.dev"
+      },
+      {
+        "confidence_signals": {},
+        "field": "links",
+        "method": "regex",
+        "selected": true,
+        "source": "github",
+        "value": "https://ananya.dev"
+      },
+      {
+        "confidence_signals": {},
+        "field": "links",
+        "method": "regex",
+        "selected": true,
+        "source": "github",
+        "value": "https://github.com/ananyarao"
+      },
+      {
+        "confidence_signals": {},
+        "field": "location",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "Bengaluru"
+      },
+      {
+        "confidence_signals": {},
+        "field": "location",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "IN"
+      },
+      {
+        "confidence_signals": {},
+        "field": "location",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "Karnataka"
+      },
+      {
+        "confidence_signals": {},
+        "field": "phones",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "+919876543210"
+      },
+      {
+        "confidence_signals": {},
+        "field": "phones",
+        "method": "exact",
+        "selected": true,
+        "source": "recruiter_csv",
+        "value": "+919988776655"
+      },
+      {
+        "confidence_signals": {},
+        "field": "phones",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "+919876543210"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "JavaScript"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "exact",
+        "selected": true,
+        "source": "ats_json",
+        "value": "Python"
+      },
+      {
+        "confidence_signals": {
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0
+        },
+        "field": "skills",
+        "method": "github_authored",
+        "selected": true,
+        "source": "github",
+        "value": "Python"
+      },
+      {
+        "confidence_signals": {
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0
+        },
+        "field": "skills",
+        "method": "github_authored",
+        "selected": true,
+        "source": "github",
+        "value": "TypeScript"
+      },
+      {
+        "confidence_signals": {
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
+          "tier": "infra"
+        },
+        "field": "skills",
+        "method": "github_filesignal",
+        "selected": true,
+        "source": "github",
+        "value": "Docker"
+      },
+      {
+        "confidence_signals": {
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
+          "tier": "cicd"
+        },
+        "field": "skills",
+        "method": "github_filesignal",
+        "selected": true,
+        "source": "github",
+        "value": "GitHub Actions"
+      },
+      {
+        "confidence_signals": {
+          "identity_confirmed": false,
+          "recent": false,
+          "stars": 0,
+          "tier": "infra"
+        },
+        "field": "skills",
+        "method": "github_filesignal",
+        "selected": true,
+        "source": "github",
+        "value": "Kubernetes"
+      },
+      {
+        "confidence_signals": {
+          "solved": 3
+        },
+        "field": "skills",
+        "method": "leetcode_solved",
+        "selected": true,
+        "source": "leetcode",
+        "value": "JavaScript"
+      },
+      {
+        "confidence_signals": {
+          "solved": 42
+        },
+        "field": "skills",
+        "method": "leetcode_solved",
+        "selected": true,
+        "source": "leetcode",
+        "value": "Python"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "notes",
+        "value": "Kubernetes"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "notes",
+        "value": "Python"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "JavaScript"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Kubernetes"
+      },
+      {
+        "confidence_signals": {},
+        "field": "skills",
+        "method": "llm_extraction",
+        "selected": true,
+        "source": "resume",
+        "value": "Python"
+      }
+    ],
+    "skills": [
+      {
+        "confidence": 1.0,
+        "name": "Python",
+        "sources": [
+          "ats_json",
+          "github",
+          "leetcode",
+          "notes",
+          "resume"
+        ]
+      },
+      {
+        "confidence": 0.7,
+        "name": "JavaScript",
+        "sources": [
+          "ats_json",
+          "leetcode",
+          "resume"
+        ]
+      },
+      {
+        "confidence": 0.6,
+        "name": "Kubernetes",
+        "sources": [
+          "github",
+          "notes",
+          "resume"
+        ]
+      },
+      {
+        "confidence": 0.6,
+        "name": "TypeScript",
+        "sources": [
+          "github"
+        ]
+      },
+      {
+        "confidence": 0.4,
+        "name": "Docker",
+        "sources": [
+          "github"
+        ]
+      },
+      {
+        "confidence": 0.4,
+        "name": "GitHub Actions",
+        "sources": [
+          "github"
+        ]
+      }
+    ],
+    "years_experience": null
+  }
+]
