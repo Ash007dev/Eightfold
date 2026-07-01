@@ -13,6 +13,7 @@ from transformer.llm import LLMClient
 from transformer.merge import merge_observations
 from transformer.models import CanonicalRecord, Observation
 from transformer.project import project_records
+from transformer.report import render_report
 
 
 def _input_files(inputs: Path) -> list[Path]:
@@ -76,6 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--check-llm", action="store_true", help="Probe configured LLM credentials/model and print OK or the exact error")
     parser.add_argument("--batch", action="store_true", help="Treat --inputs as a directory of per-candidate subfolders")
     parser.add_argument("--stats", action="store_true", help="Print batch stats to stderr")
+    parser.add_argument("--report", action="store_true", help="Print a human-readable provenance/confidence report to stderr")
     return parser
 
 
@@ -116,6 +118,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(stats, sort_keys=True), file=sys.stderr)
     if args.explain:
         print(_explain_records(records), file=sys.stderr)
+    if args.report:
+        print(render_report(records), file=sys.stderr)
     return 0
 
 

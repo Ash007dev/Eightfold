@@ -159,6 +159,46 @@ The confidence score is a pure function of provenance rows and recorded signals.
 
 File signals are intentionally conservative. A Dockerfile means "project uses Docker", not "expert in Docker". Topics, stars, and recency can corroborate or break ties, but they do not create top skills by themselves.
 
+## Scale And Batch Mode
+
+Batch mode treats `--inputs` as a directory of per-candidate subfolders and reuses the exact same single-candidate pipeline for each folder:
+
+```powershell
+python -m transformer --inputs samples\batch10 --batch --stats --config configs\default.json
+```
+
+`samples\batch10` is structured-only, so it runs offline with no API or LLM calls. It includes:
+
+- same-person CSV+ATS folders where email matches, phone formats normalize to E.164, and company conflicts resolve by field trust
+- a same-name homonym pair that stays as two profiles because name alone never merges
+- varied skills to show different confidence/provenance rows
+
+Scale benchmark:
+
+```powershell
+python scripts\scale_benchmark.py --n 1000
+```
+
+Sample result on this machine:
+
+```text
+{"candidates": 1000, "per_candidate_ms": 50.42, "profiles": 1000, "seconds": 50.423}
+{"candidates": 1000, "per_candidate_ms": 4.7, "profiles": 1000, "seconds": 4.705}
+DETERMINISTIC: OK
+```
+
+The benchmark measures the transformer engine on structured sources, not third-party API throughput. That is the honest scale scope: thousands of local candidate folders, deterministic output, and no network dependency.
+
+## Explainability Report
+
+For a human-readable confidence/provenance report, keep JSON on stdout and print the report to stderr:
+
+```powershell
+python -m transformer --inputs samples\candidate_01 --config configs\default.json --report
+```
+
+The report formats existing canonical provenance and score breakdowns. It does not recompute merge winners or confidence.
+
 ## OpenAI Routing
 
 The LLM wrapper has two deterministic cloud tiers:
@@ -290,6 +330,8 @@ python -m pytest -q
 Current suite covers:
 
 - golden pipeline output
+- byte-identical single-candidate and batch determinism
+- batch mode stats, conflict handling, and homonym separation
 - corrupt source isolation
 - phone conflicts and provenance
 - homonym non-merge
@@ -300,6 +342,7 @@ Current suite covers:
 - LeetCode degradation
 - cross-confirmed skill confidence
 - deterministic recency scoring
+- explainability report formatting
 
 ## Assumptions
 
@@ -319,3 +362,5 @@ Current suite covers:
 ## Design Decision
 
 The design decision I am happiest with is the LLM-proposes/deterministic-validators-dispose boundary plus content-hash caching. OpenAI can help turn prose into candidate-shaped JSON, but every proposed value is normalized or rejected before merge. Identity, conflict resolution, and confidence are pure code, so the system can use LLMs while staying deterministic and honest about missing data.
+
+The second design decision is the additive batch wrapper: cross-source dedup stays inside each candidate's canonical merge, while deterministic batch processing proves the same engine scales to thousands of folders with a reproducible result.
