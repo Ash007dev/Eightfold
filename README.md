@@ -19,6 +19,11 @@ canonical record != emitted output
 
 The merge layer builds the full internal `CanonicalRecord`. The projection layer in `transformer/project.py` is the only output producer, and even the default output shape is just `configs/default.json`.
 
+## Submission Links
+
+- [Demo video](https://drive.google.com/file/d/1dNpPH-J113JqI0KQguPNvVZLqPMc0gpA/view?usp=drive_link)
+- [Technical one-page abstract](https://drive.google.com/file/d/1GGhwIMGpgojVOLG_7kHgS5JK68l0BPt6/view?usp=sharing)
+
 ## Setup (macOS / Linux / Windows)
 
 Requires **Python 3.11+**. Works on macOS, Linux, and Windows.
