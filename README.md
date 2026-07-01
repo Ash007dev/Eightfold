@@ -352,13 +352,6 @@ Current suite covers:
 - LeetCode uses a public GraphQL endpoint, so network/API failures fail closed and add no evidence.
 - The committed cache fixture exists for repeatable demos.
 
-## Descoped
-
-- ORCID work verification.
-- Neo4j graph export.
-- LinkedIn profile ingestion or scraping.
-- Anthropic is available only when `LLM_PROVIDER=anthropic` is configured; the default path is OpenAI.
-
 ## Design Decision
 
 The design decision I am happiest with is the LLM-proposes/deterministic-validators-dispose boundary plus content-hash caching. OpenAI can help turn prose into candidate-shaped JSON, but every proposed value is normalized or rejected before merge. Identity, conflict resolution, and confidence are pure code, so the system can use LLMs while staying deterministic and honest about missing data.

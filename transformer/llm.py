@@ -10,10 +10,6 @@ from transformer.config import AppConfig
 logger = logging.getLogger(__name__)
 
 
-class LLMError(RuntimeError):
-    pass
-
-
 class LLMClient:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
@@ -40,33 +36,11 @@ class LLMClient:
         response = client.chat.completions.create(**params)
         return response.choices[0].message.content or "{}"
 
-    def _call_anthropic(self, model: str, prompt: str, temperature: float, include_temperature: bool = True) -> str:
-        from anthropic import Anthropic
-
-        client = Anthropic()
-        params: dict[str, Any] = {
-            "model": model,
-            "max_tokens": 2000,
-            "system": "Return only valid JSON. Do not infer missing values.",
-            "messages": [{"role": "user", "content": prompt}],
-        }
-        if include_temperature:
-            params["temperature"] = temperature
-        response = client.messages.create(**params)
-        parts: list[str] = []
-        for block in response.content:
-            text = getattr(block, "text", None)
-            if text:
-                parts.append(text)
-        return "\n".join(parts).strip() or "{}"
-
     def _call_provider(self, model: str, prompt: str, temperature: float, include_temperature: bool = True) -> str:
         provider = self.config.llm_provider.lower()
         if provider == "openai":
             return self._call_openai(model, prompt, temperature, include_temperature)
-        if provider == "anthropic":
-            return self._call_anthropic(model, prompt, temperature, include_temperature)
-        raise LLMError(f"unsupported LLM provider {self.config.llm_provider}")
+        raise ValueError(f"unsupported LLM provider {self.config.llm_provider}; set LLM_PROVIDER=OpenAI")
 
     @staticmethod
     def _is_temperature_error(exc: Exception) -> bool:
