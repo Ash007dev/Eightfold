@@ -189,8 +189,6 @@ flowchart TD
 | GitHub repo files | Supported | Weak "project uses X" evidence, tiered by taxonomy. |
 | GitHub topics | Supported | Weak skill hints only. |
 | LeetCode | Supported | Language cross-check through the public GraphQL endpoint; failures return no evidence. |
-| ORCID link | Captured only | ORCID URLs can be classified as links, but works are not verified. |
-| LinkedIn | Descoped | Links can be retained; profile scraping/verification is not implemented. |
 
 ## Evidence Model
 
@@ -396,13 +394,29 @@ Current suite covers:
 - deterministic recency scoring
 - explainability report formatting
 
-## Assumptions
+## Edge Cases Handled
 
-- Eightfold did not provide official sample inputs, so `samples/` contains synthetic fixtures.
-- Default phone region is `IN`, configurable through `.env`.
-- Name alone never merges two records.
-- LeetCode uses a public GraphQL endpoint, so network/API failures fail closed and add no evidence.
-- The committed cache fixture exists for repeatable demos.
+| Case | Behavior |
+|------|----------|
+| Malformed / corrupt source (e.g. broken JSON) | The source is isolated: it logs a warning, contributes nothing, and the run completes with a profile built from the remaining sources. |
+| Junk value (`"N/A"`, `"see resume"`, `"-"`) | Fails its format validator → becomes `null` with a provenance note. A value is never invented to fill a field. |
+| Same person across sources with different phone formats | Normalized to E.164 *before* comparison, so `+91 98765 43210` and `9876543210` collapse to one value instead of a false conflict. |
+| Two different people with the same name | Never merged. Identity requires a corroborating key (email/phone/link); name alone is insufficient. |
+| Conflicting scalar (e.g. two `current_company`) from trusted sources | Higher-trust source wins, but its confidence is lowered and the losing value is kept in provenance. |
+| GitHub / LeetCode rate-limit, timeout, or missing user | Served from cache when available; otherwise the evidence boost degrades to zero. The run never crashes on a network failure. |
+
+## Assumptions & Scope
+
+**Assumptions**
+- Eightfold provided no official sample inputs, so `samples/` contains synthetic fixtures that exercise the pipeline (conflicts, garbage, homonyms).
+- Default phone region is `IN` (configurable via `.env` `DEFAULT_REGION`) for numbers given without a country code.
+- Identity is established by email → phone → name-plus-corroborating-signal; name alone never merges two records.
+
+**Determinism**
+- All LLM and GitHub/LeetCode responses are cached by content hash (`.cache/responses.db`, committed), so the demo and tests run offline and reproducibly. LeetCode uses an unofficial public GraphQL endpoint and fails closed — any error adds no evidence rather than guessing.
+
+**Descoped (deliberate, under time pressure)**
+- **LinkedIn ingestion** — one of the brief's listed sources; left out due to auth/ToS friction. Links to a LinkedIn profile are still retained if present; profile scraping/verification is not implemented.
 
 ## Design Decision
 
